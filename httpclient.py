@@ -34,22 +34,38 @@ class HTTPResponse(object):
 
 class HTTPClient(object):
     #def get_host_port(self,url):
+
     def parse_url(self, url):
+        """
+        Parse the URL and return the hostname, port, and path
+        """
         result = urllib.parse.urlparse(url)
-        self.port = result.port if result.port else 80
-        self.path = result.path if result.path != "" else "/"
-        self.hostname = result.hostname
+        port = result.port if result.port else 80
+        path = result.path if result.path != "" else "/"
+        hostname = result.hostname
+        print(hostname, port, path)
+        return hostname, port, path
+
 
     def connect(self, host, port):
+        """
+        Connect to the webserver with the provided host with port
+        """
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.connect((host, port))
         return None
 
     def get_code(self, data):
+        """
+        Get the response code
+        """
         code = data.split()[1]
         return int(code)
 
     def get_headers(self, data):
+        """
+        This will get the headers only from the response
+        """
         headers = data.split("\r\n\r\n")[0].split("\r\n")[1:]
         header_info = {}
         for header in headers:
@@ -59,6 +75,9 @@ class HTTPClient(object):
         return header_info
 
     def get_body(self, data):
+        """
+        This will get the body from the response
+        """
         body = data.split("\r\n\r\n")[1]
         return body
     
@@ -90,12 +109,15 @@ class HTTPClient(object):
         return buffer.decode('utf-8')
 
     def GET(self, url, args=None):
-        self.parse_url(url)
-        self.connect(self.hostname, self.port)
+        """
+        Send a GET request to the url with args as the entity/body of the message (should be empty)
+        """
+        hostname, port, path = self.parse_url(url)
+        self.connect(hostname, port)
         # Create the status line
-        body = "GET {path} HTTP/1.1\r\n".format(path=self.path)
+        body = "GET {path} HTTP/1.1\r\n".format(path=path)
         # Set the headers
-        body += "Host: {host}:{port}\r\n".format(host=self.hostname, port=self.port)
+        body += "Host: {host}:{port}\r\n".format(host=hostname, port=port)
         body += "Connection: close\r\n"
         body += "Accept: */*\r\n"
         body += "\r\n"
@@ -109,17 +131,20 @@ class HTTPClient(object):
         return HTTPResponse(code, body)
 
     def POST(self, url, args=None):
-        self.parse_url(url)
-        self.connect(self.hostname, self.port)
+        """
+        Send a POST request to the url with args as the entity/body of the message
+        """
+        hostname, port, path = self.parse_url(url)
+        self.connect(hostname, port)
 
         if args != None:
             form_body = self.generate_form(args)
         else:
             form_body = ""
         # Create the status line
-        body = "POST {path} HTTP/1.1\r\n".format(path=self.path)
+        body = "POST {path} HTTP/1.1\r\n".format(path=path)
         # Set the headers
-        body += "Host: {host}:{port}\r\n".format(host=self.hostname, port=self.port)
+        body += "Host: {host}:{port}\r\n".format(host=hostname, port=port)
         body += "Connection: close\r\n"
         if args != None:
             body += "Content-Type: application/x-www-form-urlencoded\r\n"
@@ -150,6 +175,10 @@ if __name__ == "__main__":
         help()
         sys.exit(1)
     elif (len(sys.argv) == 3):
-        print(client.command( sys.argv[2], sys.argv[1] ))
+        resp = client.command( sys.argv[2], sys.argv[1] )
+        print(resp.code)
+        print(resp.body)
     else:
-        print(client.command( sys.argv[1] ))
+        resp = client.command( sys.argv[1] )
+        print(resp.code)
+        print(resp.body)
