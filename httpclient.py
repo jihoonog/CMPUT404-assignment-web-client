@@ -43,7 +43,11 @@ class HTTPClient(object):
         port = result.port if result.port else 80
         path = result.path if result.path != "" else "/"
         hostname = result.hostname
-        print(hostname, port, path)
+        if hostname is None:
+            if path.find('/') == -1:
+                path += "/"
+            hostname = path[0:path.find('/')]
+            path = path[path.find('/'):]
         return hostname, port, path
 
 
@@ -138,16 +142,15 @@ class HTTPClient(object):
         hostname, port, path = self.parse_url(url)
         self.connect(hostname, port)
 
-        if args != None:
-            form_body = self.generate_form(args)
-        else:
-            form_body = ""
+        # Assuming empty form
+        form_body = ""
         # Create the status line
         body = "POST {path} HTTP/1.1\r\n".format(path=path)
         # Set the headers
         body += "Host: {host}:{port}\r\n".format(host=hostname, port=port)
         body += "Connection: close\r\n"
         if args != None:
+            form_body = urllib.parse.urlencode(args)
             body += "Content-Type: application/x-www-form-urlencoded\r\n"
             body += "Content-Length: {}\r\n".format(len(form_body))
         else:
